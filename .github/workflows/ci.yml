@@ -8,7 +8,7 @@ on:
       - "*"
   pull_request:
     branches:
-      - main # This is especially useful if you have a multi-branch set up
+      - main
 
 jobs:
   test:
@@ -21,7 +21,6 @@ jobs:
         uses: oven-sh/setup-bun@v2.1.3
         with:
           bun-version: latest
-          cache: true
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -29,4 +28,33 @@ jobs:
       - name: Run tests
         run: bun test
 
-# TODO: Add coverage reporting using Codecov.
+  # TODO: Add Codecov Coverage here later on.
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - name: Log in to Azure
+        uses: azure/login@v2.3.0
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Build and push to ACR
+        run: |
+          az acr build \
+            --registry ${{ secrets.ACR_NAME }}
+            --image status-api:${{ github.sha }}
+
+            --image status-api:latest
+            .
+
+      - name: Deploy to Container Apps
+        run: |
+          az containerapp update \
+            --name status-api \
+            --resource-group docker-mastery-rg \
+            --image ${{ secrets.ACR_NAME }}.azurecr.io/status-api:${{ github.sha }}
