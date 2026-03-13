@@ -51,8 +51,14 @@ jobs:
         run: az acr login --name ${{ secrets.ACR_NAME }}
 
       - name: Build and push to ACR
+        env:
+          DOCKER_BUILDKIT: "1"
         run: |
+          docker pull ${{ secrets.ACR_DNS_NAME }}.azurecr.io/status-api:latest || true
+
           docker build \
+            --cache-from ${{ secrets.ACR_DNS_NAME }}.azurecr.io/status-api:latest \
+            --build-arg BUILDKIT_INLINE_CACHE=1 \
             -t ${{ secrets.ACR_DNS_NAME }}.azurecr.io/status-api:${{ github.sha }} \
             -t ${{ secrets.ACR_DNS_NAME }}.azurecr.io/status-api:latest \
             .

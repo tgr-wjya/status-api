@@ -42,7 +42,7 @@ describe("TESTING SERVER", () => {
 			const data = await response.json();
 			expect(data).toHaveProperty("app", "Docker-Mastery");
 			expect(data).toHaveProperty("author", "Tegar Wijaya Kusuma");
-			expect(data).toHaveProperty("version", "v2");
+			expect(data).toHaveProperty("version", "v1.3");
 			expect(data).toHaveProperty("uptime");
 			expect(typeof data.uptime).toBe("string");
 		});

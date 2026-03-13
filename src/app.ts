@@ -24,7 +24,7 @@ export const buildServerApp = new Elysia()
 	.get("/", () => ({
 		app: "Docker-Mastery",
 		author: "Tegar Wijaya Kusuma",
-		version: "v2",
+		version: "v1.3",
 		uptime: `${Math.floor(process.uptime())}`,
 	}))
 
