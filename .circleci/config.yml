@@ -5,7 +5,7 @@ version: 2.1
 jobs:
   build-and-test:
     docker:
-      image: oven/bun:latest
+      - image: oven/bun:latest
     resource_class: small # Don't forget to define the resource allocation to save credit
 
     steps:
