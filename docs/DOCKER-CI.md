@@ -426,19 +426,210 @@ workflows:
 
 ---
 
-## PART 4: GITHUB ACTIONS vs CIRCLECI
+## PART 4: AZURE DEPLOYMENT
 
-| | GitHub Actions | CircleCI |
-|---|---|---|
-| Config location | `.github/workflows/*.yml` | `.circleci/config.yml` |
-| Executor | `runs-on: ubuntu-latest` | `docker: - image: ...` |
-| Caching | `actions/cache@v4` or built-in | `restore_cache` / `save_cache` |
-| Cache key syntax | `${{ hashFiles(...) }}` | `{{ checksum "..." }}` |
-| Pre-built steps | `uses: actions/setup-node@v4` | Custom orbs |
-| Free tier | Generous for public repos | 6000 free credits/month |
-| Docker builds | Straightforward | Needs machine executor or DLC |
+### The Mental Model
 
-Neither is objectively better. GitHub Actions wins on convenience for public repos (no separate account, tight GitHub integration). CircleCI wins on pipeline flexibility and visibility for larger teams.
+Your Docker image needs to live somewhere before it can run in the cloud. That somewhere is a **container registry** — Azure's is called ACR (Azure Container Registry). Once your image is in ACR, Azure Container Apps pulls it and runs it.
+
+```
+Local build → ACR (private registry) → Azure Container Apps (runs it, gives you a URL)
+```
+
+You manage the image. Azure manages the runtime, TLS, ingress, and scaling.
+
+---
+
+### Key Concepts
+
+**Resource Group** — a logical container for all your Azure resources. Think of it as a folder. Everything for one project lives in one group, and you can delete the whole group to clean up.
+
+**ACR (Azure Container Registry)** — your private Docker registry hosted on Azure. Like Docker Hub but private and integrated with the rest of Azure. Azure Container Apps can pull from it directly without you juggling credentials manually.
+
+**Azure Container Apps (ACA)** — the deployment target. It runs your container, exposes an HTTPS URL, handles scaling, and lets you set environment variables. Abstracts away VMs and Kubernetes — you just give it an image and a port.
+
+**Revision** — every time you deploy a new image, ACA creates a new revision. You can roll back to a previous one instantly.
+
+---
+
+### Setup: CLI First
+
+Install the Azure CLI and log in:
+
+```bash
+az login
+az account set --subscription <your-subscription-id>
+```
+
+Create a resource group:
+
+```bash
+az group create \
+  --name docker-mastery-rg \
+  --location southeastasia
+```
+
+`southeastasia` is the closest region to Indonesia (Singapore). Use it for your projects unless you have a reason not to.
+
+---
+
+### Azure Container Registry
+
+```bash
+# Create the registry (name must be globally unique, alphanumeric only)
+az acr create \
+  --resource-group docker-mastery-rg \
+  --name <yourname>acr \
+  --sku Basic
+
+# Build and push directly from source — no local docker daemon needed
+az acr build \
+  --registry <yourname>acr \
+  --image status-api:latest .
+
+# Or if you want to build locally first, then push
+az acr login --name <yourname>acr
+docker build -t <yourname>acr.azurecr.io/status-api:latest .
+docker push <yourname>acr.azurecr.io/status-api:latest
+```
+
+`az acr build` is the cleaner path — it uploads your source to Azure and builds there. No need for Docker Desktop locally.
+
+---
+
+### Azure Container Apps
+
+```bash
+# Install the ACA extension if you don't have it
+az extension add --name containerapp --upgrade
+
+# Create a Container Apps environment (the cluster that hosts your apps)
+az containerapp env create \
+  --name docker-mastery-env \
+  --resource-group docker-mastery-rg \
+  --location southeastasia
+
+# Deploy your app
+az containerapp create \
+  --name status-api \
+  --resource-group docker-mastery-rg \
+  --environment docker-mastery-env \
+  --image <yourname>acr.azurecr.io/status-api:latest \
+  --registry-server <yourname>acr.azurecr.io \
+  --target-port 3000 \
+  --ingress external \
+  --env-vars PORT=3000 NODE_ENV=production
+
+# Get your live URL
+az containerapp show \
+  --name status-api \
+  --resource-group docker-mastery-rg \
+  --query properties.configuration.ingress.fqdn \
+  --output tsv
+```
+
+`--ingress external` makes it publicly accessible. `--target-port` must match what your app actually listens on.
+
+---
+
+### Updating a Deployment
+
+When you push a new image to ACR:
+
+```bash
+# Update the container app to use the new image
+az containerapp update \
+  --name status-api \
+  --resource-group docker-mastery-rg \
+  --image <yourname>acr.azurecr.io/status-api:latest
+```
+
+This creates a new revision. The old one stays around until you clean it up.
+
+---
+
+### Environment Variables
+
+Set them at deploy time or update them later:
+
+```bash
+az containerapp update \
+  --name status-api \
+  --resource-group docker-mastery-rg \
+  --set-env-vars HEALTH_DEGRADED=false NEW_VAR=somevalue
+```
+
+Secrets (things you don't want in your shell history):
+
+```bash
+az containerapp secret set \
+  --name status-api \
+  --resource-group docker-mastery-rg \
+  --secrets db-password=supersecret
+
+# Then reference the secret as an env var
+az containerapp update \
+  --name status-api \
+  --resource-group docker-mastery-rg \
+  --set-env-vars DB_PASSWORD=secretref:db-password
+```
+
+---
+
+### CD: GitHub Actions → ACR → ACA
+
+The full automated pipeline — tests pass, image builds, deploys automatically:
+
+```yaml
+# Add to your existing ci.yml, as a new job
+  deploy:
+    needs: test           # only runs if test job passes
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'   # only on main
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Build and push to ACR
+        run: |
+          az acr build \
+            --registry ${{ secrets.ACR_NAME }} \
+            --image status-api:${{ github.sha }} \
+            --image status-api:latest .
+
+      - name: Deploy to Container Apps
+        run: |
+          az containerapp update \
+            --name status-api \
+            --resource-group docker-mastery-rg \
+            --image ${{ secrets.ACR_NAME }}.azurecr.io/status-api:${{ github.sha }}
+```
+
+**GitHub Secrets you need:**
+- `AZURE_CREDENTIALS` — a service principal JSON. Generate with: `az ad sp create-for-rbac --sdk-auth`
+- `ACR_NAME` — your registry name without the `.azurecr.io` suffix
+
+Tagging with `${{ github.sha }}` gives every deploy a unique, traceable tag. `latest` is a convenience alias on top of that.
+
+---
+
+## PART 5: PLATFORM COMPARISON
+
+| | GitHub Actions | CircleCI | Azure (ACA) |
+|---|---|---|---|
+| Config location | `.github/workflows/*.yml` | `.circleci/config.yml` | Azure Portal / CLI |
+| Executor | `runs-on: ubuntu-latest` | `docker: - image: ...` | Managed (no config) |
+| Caching | `actions/cache@v4` or built-in | `restore_cache` / `save_cache` | N/A |
+| Cache key syntax | `${{ hashFiles(...) }}` | `{{ checksum "..." }}` | N/A |
+| Pre-built steps | `uses: actions/setup-node@v4` | Custom orbs | Azure CLI actions |
+| Free tier | Generous for public repos | 6000 free credits/month | Azure for Students ($100 renewable) |
+| Docker builds | `az acr build` from CI | Needs machine executor | Native via ACR |
+| Best for | CI pipelines | Complex pipeline logic | Deployment target |
 
 ---
 
@@ -462,4 +653,13 @@ docker exec -it <id> sh
 # See container logs
 docker logs <id>
 docker compose logs <service>
+
+# Azure
+az group create --name <rg> --location southeastasia
+az acr create --resource-group <rg> --name <name>acr --sku Basic
+az acr build --registry <name>acr --image <app>:latest .
+az containerapp env create --name <env> --resource-group <rg> --location southeastasia
+az containerapp create --name <app> --resource-group <rg> --environment <env> --image <name>acr.azurecr.io/<app>:latest --target-port 3000 --ingress external
+az containerapp update --name <app> --resource-group <rg> --image <name>acr.azurecr.io/<app>:latest
+az containerapp show --name <app> --resource-group <rg> --query properties.configuration.ingress.fqdn --output tsv
 ```

@@ -14,6 +14,10 @@ export const HEALTH_DEGRADED = Bun.env.HEALTH_DEGRADED ?? false;
 const MIN_FIELD_LENGTH = 3;
 
 export const app = new Elysia()
+	.onAfterHandle(({ set }) => {
+		set.headers["X-Powered-By"] = "Elysia + Bun + Azure";
+	})
+
 	.get("/", () => ({
 		app: "Docker-Mastery",
 		author: "Tegar Wijaya Kusuma",

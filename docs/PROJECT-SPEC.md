@@ -101,27 +101,72 @@ Write `.circleci/config.yml` yourself (no copying from guestbook-api):
 
 ---
 
-## MILESTONE 5: DEPLOY TO RAILWAY
+## MILESTONE 5: DEPLOY TO AZURE CONTAINER APPS
 
-**Goal:** A real URL that anyone can hit.
+**Goal:** A real URL that anyone can hit — on infrastructure you'll actually keep using.
+
+### Why Azure Container Apps
+Azure for Students credit is renewable. You're not racing a clock. ACA handles ingress, TLS, scaling, and env vars without you managing VMs or Kubernetes. It's the right level of abstraction for a portfolio deployment you want to stay alive.
 
 ### Requirements
-- Deploy via **Dockerfile** (not Railway's auto-detect — force it to use yours)
-- Set environment variables through Railway's dashboard
+- Push your Docker image to **Azure Container Registry (ACR)**
+- Deploy to **Azure Container Apps** using that image
+- Set environment variables through the Azure portal or CLI
 - Confirm `GET /health` returns 200 at your live URL
+
+### The Flow
+```
+docker build → ACR (your private registry) → Azure Container Apps (pulls from ACR and runs it)
+```
+
+### Steps (do these yourself — hints only)
+1. Create a Resource Group: `az group create --name docker-mastery-rg --location southeastasia`
+2. Create an ACR: `az acr create --resource-group docker-mastery-rg --name <yourname>acr --sku Basic`
+3. Build and push your image to ACR: `az acr build --registry <yourname>acr --image status-api:latest .`
+4. Create a Container Apps environment and deploy
 
 ### Success Criteria
 - ✅ Live URL works
-- ✅ Pushing to main triggers your CI, then you manually deploy
-- ✅ You understand what Railway is actually doing with your Dockerfile
+- ✅ Image lives in ACR, not Docker Hub
+- ✅ Environment variables are set through Azure, not hardcoded
+- ✅ You understand what Azure Container Apps is actually doing with your image
+- ✅ You can redeploy by pushing a new image to ACR and updating the revision
 
 ---
 
-## BONUS MILESTONE: MULTI-STAGE DOCKERFILE
+## BONUS MILESTONE A: CD WITH GITHUB ACTIONS → ACR
+
+**Goal:** Push to main, image builds and pushes to ACR automatically.
+
+### Requirements
+Extend your `ci.yml`:
+- After tests pass on main, build and push the Docker image to ACR
+- Use GitHub Secrets for Azure credentials (never hardcode them)
+
+```yaml
+- name: Log in to ACR
+  uses: azure/docker-login@v1
+  with:
+    login-server: ${{ secrets.ACR_LOGIN_SERVER }}
+    username: ${{ secrets.ACR_USERNAME }}
+    password: ${{ secrets.ACR_PASSWORD }}
+
+- name: Build and push
+  run: |
+    docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/status-api:latest .
+    docker push ${{ secrets.ACR_LOGIN_SERVER }}/status-api:latest
+```
+
+### Success Criteria
+- ✅ Push to main triggers a new image build and push to ACR
+- ✅ No credentials in code — all in GitHub Secrets
+- ✅ You understand why `ACR_PASSWORD` is a service principal secret, not your personal Azure password
+
+---
+
+## BONUS MILESTONE B: MULTI-STAGE DOCKERFILE
 
 **Goal:** Smaller, production-appropriate image.
-
-A multi-stage build separates "build environment" from "runtime environment." You don't need all your dev dependencies in the final image.
 
 ```dockerfile
 # Stage 1 — install everything
@@ -141,7 +186,7 @@ CMD ["bun", "index.ts"]
 ### Success Criteria
 - ✅ `docker images` shows the multi-stage image is smaller than your original
 - ✅ You can explain what `COPY --from=builder` is doing
-- ✅ App still works
+- ✅ App still works after deploy to ACA from the smaller image
 
 ---
 
@@ -157,10 +202,11 @@ You can ask for hints. You cannot ask for the solution.
 
 ## STACK
 
-- Runtime: Bun + Elysia (familiar ground — no new framework surprises)
+- Runtime: Bun + Elysia
 - Container: Docker
 - Compose: Docker Compose v2
 - CI: GitHub Actions + CircleCI
-- Deploy: Railway
+- Registry: Azure Container Registry (ACR)
+- Deploy: Azure Container Apps (ACA)
 
 Good luck.
