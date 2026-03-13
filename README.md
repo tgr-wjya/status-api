@@ -2,6 +2,7 @@
 
 [![CircleCI](https://dl.circleci.com/status-badge/img/circleci/85F8zZ7ostSSLjq88Rwb8X/HokgEug1DmtoUsvHEmuyC8/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/circleci/85F8zZ7ostSSLjq88Rwb8X/HokgEug1DmtoUsvHEmuyC8/tree/main)
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/tgr-wjya/docker-mastery2/ci.yml)
+[![codecov](https://codecov.io/gh/tgr-wjya/docker-mastery2/graph/badge.svg?token=4fn6sa5jB7)](https://codecov.io/gh/tgr-wjya/docker-mastery2)
 
 **14 March 2026**
 
@@ -125,6 +126,22 @@ in the meantime, just add `/swagger` at the end of the **url**, check the swagge
   - point out the deployment source using your said image from the azure registries
   - if your container is an api, you might want to enable the `ingress`, just don't forget to set the `target port` to your actual project port, in my case its `3000`
   - and voilà, you've successfully deployed your own container app project!
+
+## mistakes i made (and fixed)
+
+1. `az acr build` is blocked on azure for students
+  - `az acr build` uses acr tasks, a remote build feature that student subscriptions don't allow.
+  - fix: build locally on the ci runner with `docker build` and push with `docker push` instead.
+
+2. wrong `ACR_NAME` secret value
+  - set it to the full hostname `statusapi-dxa6e4dje7hsera4.azurecr.io` instead of just the registry
+  name `statusapi`. 
+  - this caused `docker push` to resolve a nonexistent host. 
+  - fix: secret should be the registry name only — `.azurecr.io` is appended in the workflow.
+  
+3. missing `az acr login` before `docker push`
+  - `docker push` to azure registries requires docker to be authenticated separately from the azure cli.
+  - fix: add `az acr login --name ${{ secrets.ACR_NAME }}` after `azure/login@v2`.
 
 ## find me
 
