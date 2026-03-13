@@ -8,7 +8,7 @@ on:
       - "**" # This covers all branches
   pull_request:
     branches:
-      - main # This is especially useful if you have a multi-branch set up with main and dev
+      - main # This is especially useful if you have a multi-branch set up
 
 jobs:
   test:
