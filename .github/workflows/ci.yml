@@ -46,10 +46,9 @@ jobs:
       - name: Build and push to ACR
         run: |
           az acr build \
-            --registry ${{ secrets.ACR_NAME }}
-            --image status-api:${{ github.sha }}
-
-            --image status-api:latest
+            --registry ${{ secrets.ACR_NAME }} \
+            --image status-api:${{ github.sha }} \
+            --image status-api:latest \
             .
 
       - name: Deploy to Container Apps
