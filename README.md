@@ -6,13 +6,15 @@
 
 **15 March 2026**
 
-> minimal status API. the real value is the deployment: **Dockerfile, Azure Container Registry, Container Apps, and a full GitHub Actions CI pipeline** written from scratch that i did on my own.
+> **minimal api. maximum infrastructure**
 
-actually deploying my app with my own written *dockerfile* and *ci* without llm scaffolding help, to azure using Azure Container Registries which then deployed on Container App
+actually deploying my app with my own written **dockerfile** and **ci pipeline** from scratch without llm scaffolding help
+
+deployed on azure using azure container registries which then deployed on container app
 
 the goal is to learn and write the deployment config on my own.
 
-understanding docker is an integral part of becoming a devops engineer. scaffolding it won't help me learn anything.
+understanding docker is an integral part of becoming a devops engineer. scaffolding it won't help me learn anything. what's a backend engineer worth without knowing devops? 
 
 ## live url
 
