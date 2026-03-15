@@ -20,6 +20,12 @@ understanding docker is an integral part of becoming a devops engineer. scaffold
 
 **check the container app here**: [status-api](https://status-api.ashypebble-debb1f65.southeastasia.azurecontainerapps.io/)
 
+> ps: azure container app is designed to aggresively scale to zero when they're idle, so expect your request to take a long time!
+
+it's coming don't worry, but its ridicolously slow for an endpoint, i've tested, and its a mindboggling `~15s`. to cut down cust, i've decided not to enable the `min_replica`. 
+
+so, if you really have the time to check it out, thank you so much!
+
 ## openapi documentation
 
 **check out the openapi documentation here**: [status-api swagger docs](https://status-api.ashypebble-debb1f65.southeastasia.azurecontainerapps.io/swagger)
