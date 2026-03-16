@@ -13,8 +13,8 @@ const HOSTNAME = Bun.env.HOSTNAME ?? "0.0.0.0";
 buildServerApp.listen({ port: PORT, hostname: HOSTNAME });
 
 console.log(
-  `Elysia listening at http://localhost:${buildServerApp.server?.port}`,
+	`Elysia listening at http://localhost:${buildServerApp.server?.port}`,
 );
 console.log(
-  `Swagger listening at http://localhost:${buildServerApp.server?.port}/swagger`,
+	`Swagger listening at http://localhost:${buildServerApp.server?.port}/swagger`,
 );

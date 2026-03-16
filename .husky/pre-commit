@@ -1,0 +1,2 @@
+bunx biome lint --write
+bunx biome format --write
