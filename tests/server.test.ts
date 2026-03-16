@@ -18,7 +18,7 @@
  * @date 17 March 2026
  */
 
-import { describe, expect, it, beforeEach, afterEach } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { buildServerApp } from "../src/app";
 
 const BASE_URL = Bun.env.BASE_URL ?? "http://localhost:3000";

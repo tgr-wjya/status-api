@@ -8,10 +8,11 @@
 		"@types/bun": "latest"
 	},
 	"scripts": {
-		"lint": "biome lint",
+		"biome:lint": "biome lint",
+		"biome:format": "bunx biome format --write",
+		"biome:ci": "bunx biome ci",
 		"dev": "bun --watch index.ts",
-		"test": "bun test",
-		"format": "bunx biome format"
+		"test": "bun test"
 	},
 	"peerDependencies": {
 		"typescript": "^5"

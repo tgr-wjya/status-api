@@ -10,8 +10,8 @@
  * @date 17 March 2026
  */
 
-import { Elysia, t } from "elysia";
 import { swagger } from "@elysiajs/swagger";
+import { Elysia, t } from "elysia";
 
 export const HEALTH_DEGRADED = Bun.env.HEALTH_DEGRADED ?? false;
 const MIN_TEXT_LENGTH = 5;
