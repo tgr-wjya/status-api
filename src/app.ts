@@ -7,18 +7,19 @@
  * POST /echo - returns whatever JSON body send
  *
  * @author Tegar Wijaya Kusuma
- * @date 15 March 2026
+ * @date 17 March 2026
  */
 
 import { Elysia, t } from "elysia";
 import { swagger } from "@elysiajs/swagger";
 
 export const HEALTH_DEGRADED = Bun.env.HEALTH_DEGRADED ?? false;
-const MIN_FIELD_LENGTH = 3;
+const MIN_TEXT_LENGTH = 5;
+const MIN_NAME_LENGTH = 3;
 
 export const buildServerApp = new Elysia()
   .onAfterHandle(({ set }) => {
-    set.headers["X-Powered-By"] = "Elysia + Bun + Azure";
+    set.headers["X-Powered-By"] = "Elysia + Bun + Azure Container App";
   })
 
   .get(
@@ -28,14 +29,14 @@ export const buildServerApp = new Elysia()
       author: "Tegar Wijaya Kusuma",
       version: "v1.3",
       date: `${new Date().toISOString()}`,
-      uptime: `${Math.floor(process.uptime())}`
+      uptime: `${Math.floor(process.uptime())}`,
     }),
     {
       detail: {
         summary: "App info",
         responses: {
           200: {
-            description: "Returns app name, author, version, uptime",
+            description: "Returns app name, author, version, date and uptime",
           },
         },
       },
@@ -68,12 +69,15 @@ export const buildServerApp = new Elysia()
     "/echo",
     async ({ set, body }) => {
       set.status = 201;
-      // The body uses json indeed, but this will return only text from body.field send
-      return body.field;
+      return {
+        name: body.name,
+        text: body.text
+      }
     },
     {
       body: t.Object({
-        field: t.String({ minLength: MIN_FIELD_LENGTH }),
+        name: t.String({ minLength: MIN_NAME_LENGTH }),
+        text: t.String({ minLength: MIN_TEXT_LENGTH }),
       }),
       detail: {
         summary: "Echo field value",

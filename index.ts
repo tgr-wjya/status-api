@@ -2,7 +2,7 @@
  * Entrypoint for my System Status API
  *
  * @author Tegar Wijaya Kusuma
- * @date 15 March 2026
+ * @date 17 March 2026
  */
 
 import { buildServerApp } from "./src/app";
@@ -13,8 +13,8 @@ const HOSTNAME = Bun.env.HOSTNAME ?? "0.0.0.0";
 buildServerApp.listen({ port: PORT, hostname: HOSTNAME });
 
 console.log(
-	`Elysia listening at http://localhost:${buildServerApp.server?.port}`,
+  `Elysia listening at http://localhost:${buildServerApp.server?.port}`,
 );
 console.log(
-	`Swagger listening at http://localhost:${buildServerApp.server?.port}/swagger`,
+  `Swagger listening at http://localhost:${buildServerApp.server?.port}/swagger`,
 );
