@@ -1,10 +1,10 @@
-# docker-mastery2
+# status-api
 
 [![CircleCI](https://dl.circleci.com/status-badge/img/circleci/85F8zZ7ostSSLjq88Rwb8X/HokgEug1DmtoUsvHEmuyC8/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/circleci/85F8zZ7ostSSLjq88Rwb8X/HokgEug1DmtoUsvHEmuyC8/tree/main)
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/tgr-wjya/docker-mastery2/ci.yml)
 [![codecov](https://codecov.io/gh/tgr-wjya/docker-mastery2/graph/badge.svg?token=4fn6sa5jB7)](https://codecov.io/gh/tgr-wjya/docker-mastery2)
 
-## 17 March 2026
+## 18 March 2026
 
 > **minimal api. maximum infrastructure**
 
@@ -22,7 +22,7 @@ understanding docker is an integral part of becoming a devops engineer. scaffold
 
 > ps: azure container app is designed to aggresively scale to zero when they're idle, so expect your request to take a long time!
 
-it's coming don't worry, but its ridicolously slow for an endpoint, i've tested, and its a mindboggling `~17s`. to cut down cust, i've decided not to enable the `min_replica`.
+it's coming don't worry, but its ridicolously slow for an endpoint, i've tested, and its a mindboggling `~15s`. to cut down cust, i've decided not to enable the `min_replica`.
 
 so, if you really have the time to check it out, thank you so much!
 

@@ -15,37 +15,39 @@
  *
  *
  * @author Tegar Wijaya Kusuma
- * @date 17 March 2026
+ * @date 18 March 2026
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { buildServerApp } from "../src/app";
+import { statusApiApp } from "../src/app";
 
 const BASE_URL = Bun.env.BASE_URL ?? "http://localhost:3000";
-let app: typeof buildServerApp;
+const app = statusApiApp;
+const JSON_HEADERS = { "Content-Type": "application/json" };
+
+const handleRequest = (path: string, init?: RequestInit) =>
+	app.handle(new Request(`${BASE_URL}${path}`, init));
 
 describe("TESTING SERVER", () => {
-	beforeEach(() => {
-		app = buildServerApp;
+	describe("Headers", () => {
+		it("Should return headers", async () => {
+			const response = await handleRequest("/");
+
+			expect(response.headers.get("X-Powered-By")).toBe(
+				"Elysia + Bun + Azure Container App",
+			);
+		});
 	});
 
-	it("Should return headers", async () => {
-		const response = await app.handle(new Request(`${BASE_URL}`));
-
-		expect(response.headers.get("X-Powered-By")).toBe(
-			"Elysia + Bun + Azure Container App",
-		);
-	});
-
-	describe("GET /root", () => {
+	describe("GET /", () => {
 		it("Should return app name, author, version, date and uptime", async () => {
-			const response = await app.handle(new Request(`${BASE_URL}`));
+			const response = await handleRequest("/");
 
 			expect(response.status).toBe(200);
 			const data = await response.json();
 			expect(data).toHaveProperty("app", "Docker-Mastery");
 			expect(data).toHaveProperty("author", "Tegar Wijaya Kusuma");
-			expect(data).toHaveProperty("version", "v1.3");
+			expect(data).toHaveProperty("version", "v2");
 			expect(data).toHaveProperty("date");
 			expect(typeof data.date).toBe("string");
 			expect(new Date(data.date).toISOString()).toBe(data.date);
@@ -56,7 +58,7 @@ describe("TESTING SERVER", () => {
 
 	describe("GET /health", () => {
 		it("Should return status: ok with 200", async () => {
-			const response = await app.handle(new Request(`${BASE_URL}/health`));
+			const response = await handleRequest("/health");
 
 			expect(response.status).toBe(200);
 			const data = await response.json();
@@ -76,7 +78,7 @@ describe("TESTING SERVER", () => {
 		});
 
 		it("Should return status: degraded with 503", async () => {
-			const response = await app.handle(new Request(`${BASE_URL}/health`));
+			const response = await handleRequest("/health");
 
 			expect(response.status).toBe(503);
 			const data = await response.json();
@@ -87,13 +89,11 @@ describe("TESTING SERVER", () => {
 	describe("POST /echo", () => {
 		it("Should return the name and text with 201", async () => {
 			const payload = { name: "John", text: "Hello world!" };
-			const response = await app.handle(
-				new Request(`${BASE_URL}/echo`, {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify(payload),
-				}),
-			);
+			const response = await handleRequest("/echo", {
+				method: "POST",
+				headers: JSON_HEADERS,
+				body: JSON.stringify(payload),
+			});
 			expect(response.status).toBe(201);
 			const data = await response.json();
 			expect(data).toEqual(payload);
@@ -101,38 +101,74 @@ describe("TESTING SERVER", () => {
 
 		it("Should reject name shorter than 3 chars with 422", async () => {
 			const payload = { name: "Al", text: "Hello world!" };
-			const response = await app.handle(
-				new Request(`${BASE_URL}/echo`, {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify(payload),
-				}),
-			);
+			const response = await handleRequest("/echo", {
+				method: "POST",
+				headers: JSON_HEADERS,
+				body: JSON.stringify(payload),
+			});
 			expect(response.status).toBe(422);
 		});
 
 		it("Should reject text shorter than 5 chars with 422", async () => {
 			const payload = { name: "John", text: "Hey" };
-			const response = await app.handle(
-				new Request(`${BASE_URL}/echo`, {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify(payload),
-				}),
-			);
+			const response = await handleRequest("/echo", {
+				method: "POST",
+				headers: JSON_HEADERS,
+				body: JSON.stringify(payload),
+			});
 			expect(response.status).toBe(422);
 		});
 
 		it("Should reject missing fields with 422", async () => {
 			const payload = { name: "John" };
-			const response = await app.handle(
-				new Request(`${BASE_URL}/echo`, {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify(payload),
-				}),
-			);
+			const response = await handleRequest("/echo", {
+				method: "POST",
+				headers: JSON_HEADERS,
+				body: JSON.stringify(payload),
+			});
 			expect(response.status).toBe(422);
+		});
+	});
+
+	describe("Swagger docs", () => {
+		it("Should return the Swagger UI", async () => {
+			const response = await handleRequest("/swagger");
+
+			expect(response.status).toBe(200);
+			expect(response.headers.get("content-type")).toContain("text/html");
+		});
+
+		it("Should return the OpenAPI JSON document", async () => {
+			const response = await handleRequest("/swagger/json");
+
+			expect(response.status).toBe(200);
+			expect(response.headers.get("content-type")).toContain(
+				"application/json",
+			);
+			const document = await response.json();
+			expect(document).toHaveProperty("openapi", "3.0.3");
+			expect(document).toHaveProperty(
+				"info.title",
+				"Docker-Mastery Status API",
+			);
+			expect(document.paths).toHaveProperty("/");
+			expect(document.paths).toHaveProperty("/health");
+			expect(document.paths).toHaveProperty("/echo");
+		});
+	});
+
+	describe("Wildcard handler", () => {
+		it("Should return 404 and an Array for an invalid path", async () => {
+			const response = await handleRequest("/999", {
+				method: "PATCH",
+			});
+
+			expect(response.status).toBe(404);
+			expect(response.headers.get("content-type")).toContain(
+				"application/json",
+			);
+			const wildcard = await response.json();
+			expect(wildcard).toEqual(["GET /", "GET /health", "POST /echo"]);
 		});
 	});
 });

@@ -7,19 +7,34 @@
  * POST /echo - returns whatever JSON body send
  *
  * @author Tegar Wijaya Kusuma
- * @date 17 March 2026
+ * @date 18 March 2026
  */
 
 import { swagger } from "@elysiajs/swagger";
 import { Elysia, t } from "elysia";
+import { NotFoundException } from "./errors/errors";
 
-export const HEALTH_DEGRADED = Bun.env.HEALTH_DEGRADED ?? false;
+/**
+ * HTTP Code Const
+ */
+const HTTP_OK = 200;
+const HTTP_CREATED = 201;
+const HTTP_SERVICE_UNAVAILABLE = 503;
+// Schema validation Const
 const MIN_TEXT_LENGTH = 5;
 const MIN_NAME_LENGTH = 3;
+const APP_VERSION = "v2";
 
-export const buildServerApp = new Elysia()
+export const statusApiApp = new Elysia()
+	// Add custom X-Powered-By header to all responses
 	.onAfterHandle(({ set }) => {
 		set.headers["X-Powered-By"] = "Elysia + Bun + Azure Container App";
+	})
+	.onError(({ code, error, set }) => {
+		if (code === "UNKNOWN" && error instanceof NotFoundException) {
+			set.status = error.status;
+			return error.availableEndpoints;
+		}
 	})
 
 	.get(
@@ -27,9 +42,9 @@ export const buildServerApp = new Elysia()
 		() => ({
 			app: "Docker-Mastery",
 			author: "Tegar Wijaya Kusuma",
-			version: "v1.3",
-			date: `${new Date().toISOString()}`,
-			uptime: `${Math.floor(process.uptime())}`,
+			version: `${APP_VERSION}`,
+			date: `${new Date().toISOString()}`, // ISO 8601 format
+			uptime: `${Math.floor(process.uptime())}`, // Uptime in seconds
 		}),
 		{
 			detail: {
@@ -48,10 +63,10 @@ export const buildServerApp = new Elysia()
 		({ set }) => {
 			// This whole server is designed to be trivial, this simple conditional perfect for our situation.
 			if (Bun.env.HEALTH_DEGRADED === "true") {
-				set.status = 503;
+				set.status = HTTP_SERVICE_UNAVAILABLE;
 				return { status: "degraded" };
 			}
-			set.status = 200;
+			set.status = HTTP_OK;
 			return { status: "ok" };
 		},
 		{
@@ -67,8 +82,8 @@ export const buildServerApp = new Elysia()
 
 	.post(
 		"/echo",
-		async ({ set, body }) => {
-			set.status = 201;
+		({ set, body }) => {
+			set.status = HTTP_CREATED;
 			return {
 				name: body.name,
 				text: body.text,
@@ -115,4 +130,11 @@ export const buildServerApp = new Elysia()
 				],
 			},
 		}),
-	);
+	)
+
+	/**
+	 * Wildcard handler
+	 */
+	.all("/*", () => {
+		throw new NotFoundException(["GET /", "GET /health", "POST /echo"]);
+	});
