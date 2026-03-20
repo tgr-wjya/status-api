@@ -19,13 +19,11 @@
  */
 
 import { describe, expect, it } from "bun:test";
-import { statusApiApp } from "../src/app";
+import { RootHandler, type RootResponse, statusApiApp } from "../src/app";
 import {
 	type AllError,
 	availableEndpointsArray,
 	type ElysiaValidationError,
-	RootHandler,
-	type RootResponse,
 	type WildcardError,
 } from "./types";
 
