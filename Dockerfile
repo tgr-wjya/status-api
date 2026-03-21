@@ -8,5 +8,5 @@ FROM oven/bun:1.3.10-slim AS runner
 WORKDIR /app
 COPY --from=builder /app/node_modules ./node_modules
 # Copy dependencies from builder stage
-COPY --from=builder /app/node_modules ./node_modulesCOPY . .
+COPY . .
 CMD ["bun", "index.ts"]

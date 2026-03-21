@@ -22,5 +22,3 @@ export interface AllError {
 	error: string;
 	timestamp: string;
 }
-
-export const availableEndpointsArray = ["GET /", "GET /health", "POST /echo"];

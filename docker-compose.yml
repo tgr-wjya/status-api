@@ -3,13 +3,3 @@ services:
     build: .
     ports:
       - "3000:3000"
-    environment:
-      - REDIS_URL=redis://redis:6379
-    # the hostname is redis because that is what depends_on referring to.
-    depends_on:
-      - redis
-  # This use the service name as the hostname
-  redis:
-    image: redis:alpine
-    ports:
-      - "6379:6379"

@@ -10,8 +10,8 @@
  * @date 20 March 2026
  */
 
+import { swagger } from "@elysiajs/swagger";
 import { Elysia, t, ValidationError } from "elysia";
-import { availableEndpointsArray } from "../tests/types";
 import { NotFoundException } from "./errors/errors";
 
 /**
@@ -24,6 +24,8 @@ const HTTP_SERVICE_UNAVAILABLE = 503;
 const MIN_TEXT_LENGTH = 5;
 const MIN_NAME_LENGTH = 3;
 const APP_VERSION = "v3";
+
+export const availableEndpointsArray = ["GET /", "GET /health", "POST /echo"];
 
 export interface RootResponse {
 	app: string;

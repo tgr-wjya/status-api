@@ -19,13 +19,13 @@
  */
 
 import { describe, expect, it } from "bun:test";
-import { RootHandler, type RootResponse, statusApiApp } from "../src/app";
 import {
-	type AllError,
 	availableEndpointsArray,
-	type ElysiaValidationError,
-	type WildcardError,
-} from "./types";
+	RootHandler,
+	type RootResponse,
+	statusApiApp,
+} from "../src/app";
+import type { AllError, ElysiaValidationError, WildcardError } from "./types";
 
 const BASE_URL = Bun.env.BASE_URL ?? "http://localhost:3000";
 
